@@ -8,6 +8,9 @@ Hash-based address derivation — deterministic prefix allocation from names, no
 |----------|-------------|
 | `HashPrefix(base, newBits, name)` | Map a name to a child prefix via SHA-256 |
 | `HostAddr(prefix, num)` | Host address at offset `num` within a prefix |
+| `PigeonULARange()` | Pigeon's ULA base prefix (`fdaa::/16`) |
+| `IsPigeonIP(ip)` | Reports whether ip is in `fdaa::/16` |
+| `TransposePigeonULA(ip)` | Exchange network/host fields for WireGuard routing |
 
 ## Pigeon Address Plan
 
@@ -45,7 +48,7 @@ gw, _ := addr.HostAddr(host, 1)
 // gw = fdaa:NNNN:NNNN:HHHH:HHHH::1
 
 // Transpose for WireGuard routing.
-wire := addr.TransposePigeonULA(gw)
+wire, ok := addr.TransposePigeonULA(gw)
 // wire = fdaa:HHHH:HHHH:NNNN:NNNN::1
 ```
 
