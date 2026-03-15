@@ -91,16 +91,25 @@ func TestNetworkDifferentNames(t *testing.T) {
 
 func TestTransposePigeonULA_RoundTrip(t *testing.T) {
 	ip := netip.MustParseAddr("fdaa:1111:2222:3333:4444:5555:6666:7777")
-	if TransposePigeonULA(TransposePigeonULA(ip)) != ip {
-		t.Fatalf("TransposePigeonULA is not self-inverse: got %s", TransposePigeonULA(TransposePigeonULA(ip)))
+	w, ok := TransposePigeonULA(ip)
+	if !ok {
+		t.Fatal("expected ok")
+	}
+	rt, ok := TransposePigeonULA(w)
+	if !ok {
+		t.Fatal("expected ok on round-trip")
+	}
+	if rt != ip {
+		t.Fatalf("not self-inverse: got %s", rt)
 	}
 }
 
 func TestTransposePigeonULA_Fields(t *testing.T) {
-	// App view: net=1111:2222, host=3333:4444
 	app := netip.MustParseAddr("fdaa:1111:2222:3333:4444::1")
-	wire := TransposePigeonULA(app)
-	// Wire view: host=3333:4444, net=1111:2222
+	wire, ok := TransposePigeonULA(app)
+	if !ok {
+		t.Fatal("expected ok")
+	}
 	want := netip.MustParseAddr("fdaa:3333:4444:1111:2222::1")
 	if wire != want {
 		t.Fatalf("TransposePigeonULA(%s) = %s, want %s", app, wire, want)
@@ -118,8 +127,10 @@ func TestTransposePigeonULA_HostRouting(t *testing.T) {
 	vm2, _ := HostAddr(host2, 1)
 
 	// In wire view, same host → first 6 bytes (fdaa + host32) should match.
-	wire1 := TransposePigeonULA(vm1).As16()
-	wire2 := TransposePigeonULA(vm2).As16()
+	w1, _ := TransposePigeonULA(vm1)
+	w2, _ := TransposePigeonULA(vm2)
+	wire1 := w1.As16()
+	wire2 := w2.As16()
 	for i := 0; i < 6; i++ {
 		if wire1[i] != wire2[i] {
 			t.Fatalf("wire view byte %d differs: %02x != %02x", i, wire1[i], wire2[i])
@@ -128,9 +139,11 @@ func TestTransposePigeonULA_HostRouting(t *testing.T) {
 }
 
 func TestTransposePigeonULA_PreservesPrefix(t *testing.T) {
-	// TransposePigeonULA must not touch bytes 0-1 (fdaa) or 10-15 (rest).
 	ip := netip.MustParseAddr("fdaa:aaaa:bbbb:cccc:dddd:1111:2222:3333")
-	swapped := TransposePigeonULA(ip)
+	swapped, ok := TransposePigeonULA(ip)
+	if !ok {
+		t.Fatal("expected ok")
+	}
 	b := swapped.As16()
 	if b[0] != 0xfd || b[1] != 0xaa {
 		t.Fatal("swap altered fdaa prefix")

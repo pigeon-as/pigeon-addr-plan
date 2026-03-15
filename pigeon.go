@@ -29,11 +29,14 @@ func PigeonULARange() netip.Prefix { return pigeonULA }
 func IsPigeonIP(ip netip.Addr) bool { return pigeonULA.Contains(ip) }
 
 // TransposePigeonULA is self-inverse.
-func TransposePigeonULA(addr netip.Addr) netip.Addr {
-	b := addr.As16()
+func TransposePigeonULA(ip netip.Addr) (netip.Addr, bool) {
+	if !IsPigeonIP(ip) {
+		return netip.Addr{}, false
+	}
+	b := ip.As16()
 	// Exchange bytes 2–5 (network) and 6–9 (host).
 	for i := range NetworkBits / 8 {
 		b[2+i], b[6+i] = b[6+i], b[2+i]
 	}
-	return netip.AddrFrom16(b)
+	return netip.AddrFrom16(b), true
 }
