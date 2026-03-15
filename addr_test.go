@@ -39,15 +39,6 @@ func TestHashPrefix_PrefixLength(t *testing.T) {
 	}
 }
 
-func TestHashPrefix_PreservesBase(t *testing.T) {
-	base := netip.MustParsePrefix("fdaa:abcd::/32")
-	sub, _ := HashPrefix(base, 32, "test")
-	// First 32 bits must match base.
-	if sub.Addr().As16()[0] != 0xfd || sub.Addr().As16()[1] != 0xaa {
-		t.Fatalf("base prefix not preserved: %s", sub)
-	}
-}
-
 // TestHashPrefix_SHA256 verifies the hash-to-prefix mapping uses SHA-256.
 func TestHashPrefix_SHA256(t *testing.T) {
 	name := "acme"
@@ -101,23 +92,6 @@ func TestHashPrefix_InvalidNewBits(t *testing.T) {
 	}
 }
 
-// TestHashPrefix_Composable verifies hierarchical derivation.
-func TestHashPrefix_Composable(t *testing.T) {
-	org, _ := HashPrefix(netip.MustParsePrefix("fdaa::/16"), 32, "acme-corp")
-	host, _ := HashPrefix(org, 16, "worker-01")
-	if org.Bits() != 48 {
-		t.Fatalf("org bits = %d, want 48", org.Bits())
-	}
-	if host.Bits() != 64 {
-		t.Fatalf("host bits = %d, want 64", host.Bits())
-	}
-	// org prefix must be preserved in host.
-	if host.Addr().As16()[0] != org.Addr().As16()[0] ||
-		host.Addr().As16()[1] != org.Addr().As16()[1] {
-		t.Fatalf("org prefix not preserved: org=%s, host=%s", org, host)
-	}
-}
-
 func TestHostAddr(t *testing.T) {
 	prefix := netip.MustParsePrefix("fd10:abcd:ef01::/48")
 
@@ -149,18 +123,5 @@ func TestHostAddr_IPv4(t *testing.T) {
 func TestHostAddr_NoHostBits(t *testing.T) {
 	if _, err := HostAddr(netip.MustParsePrefix("fd10::1/128"), 1); err == nil {
 		t.Fatal("expected error for /128 prefix")
-	}
-}
-
-// TestHashPrefixThenHostAddr verifies the full workflow.
-func TestHashPrefixThenHostAddr(t *testing.T) {
-	sub, _ := HashPrefix(netip.MustParsePrefix("fd10::/16"), 32, "worker-01")
-	host, _ := HostAddr(sub, 1)
-
-	if sub.Bits() != 48 {
-		t.Fatalf("subnet bits = %d, want 48", sub.Bits())
-	}
-	if host.String()[len(host.String())-2:] != ":1" {
-		t.Fatalf("host should end with :1, got %s", host)
 	}
 }

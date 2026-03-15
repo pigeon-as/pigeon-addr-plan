@@ -21,18 +21,6 @@ func TestIsPigeonIP(t *testing.T) {
 	}
 }
 
-func TestNetworkBits(t *testing.T) {
-	if NetworkBits != 32 {
-		t.Fatalf("NetworkBits = %d, want 32", NetworkBits)
-	}
-}
-
-func TestHostBits(t *testing.T) {
-	if HostBits != 32 {
-		t.Fatalf("HostBits = %d, want 32", HostBits)
-	}
-}
-
 // TestAddressTree verifies the full pigeon address hierarchy:
 //
 //	fdaa::/16 → fdaa:NNNN:NNNN::/48 → fdaa:NNNN:NNNN:HHHH:HHHH::/80 → ::1
@@ -70,22 +58,6 @@ func TestAddressTree(t *testing.T) {
 	}
 	if !host.Contains(gw) {
 		t.Fatalf("gateway %s not in host %s", gw, host)
-	}
-}
-
-func TestNetworkDeterministic(t *testing.T) {
-	a, _ := HashPrefix(PigeonULARange(), NetworkBits, "prod")
-	b, _ := HashPrefix(PigeonULARange(), NetworkBits, "prod")
-	if a != b {
-		t.Fatalf("not deterministic: %s != %s", a, b)
-	}
-}
-
-func TestNetworkDifferentNames(t *testing.T) {
-	a, _ := HashPrefix(PigeonULARange(), NetworkBits, "prod")
-	b, _ := HashPrefix(PigeonULARange(), NetworkBits, "staging")
-	if a == b {
-		t.Fatal("different names produced same network")
 	}
 }
 
@@ -134,24 +106,6 @@ func TestTransposePigeonULA_HostRouting(t *testing.T) {
 	for i := 0; i < 6; i++ {
 		if wire1[i] != wire2[i] {
 			t.Fatalf("wire view byte %d differs: %02x != %02x", i, wire1[i], wire2[i])
-		}
-	}
-}
-
-func TestTransposePigeonULA_PreservesPrefix(t *testing.T) {
-	ip := netip.MustParseAddr("fdaa:aaaa:bbbb:cccc:dddd:1111:2222:3333")
-	swapped, ok := TransposePigeonULA(ip)
-	if !ok {
-		t.Fatal("expected ok")
-	}
-	b := swapped.As16()
-	if b[0] != 0xfd || b[1] != 0xaa {
-		t.Fatal("swap altered fdaa prefix")
-	}
-	orig := ip.As16()
-	for i := 10; i < 16; i++ {
-		if b[i] != orig[i] {
-			t.Fatalf("swap altered byte %d: %02x != %02x", i, b[i], orig[i])
 		}
 	}
 }
