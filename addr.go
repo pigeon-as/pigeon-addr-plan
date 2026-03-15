@@ -43,12 +43,19 @@ func HostAddr(prefix netip.Prefix, num int) (netip.Addr, error) {
 	if hostBits <= 0 {
 		return netip.Addr{}, fmt.Errorf("no host bits in /%d prefix", prefix.Bits())
 	}
+	if num < 0 {
+		return netip.Addr{}, fmt.Errorf("negative host offset %d", num)
+	}
 
 	masked := prefix.Masked()
 	addrInt := addrToInt(masked.Addr())
 	addrInt.Add(addrInt, big.NewInt(int64(num)))
 
-	return intToAddr(addrInt, prefix.Addr().Is6()), nil
+	addr := intToAddr(addrInt, prefix.Addr().Is6())
+	if !prefix.Contains(addr) {
+		return netip.Addr{}, fmt.Errorf("host offset %d out of range for %s", num, prefix)
+	}
+	return addr, nil
 }
 
 func bitLen(a netip.Addr) int {
