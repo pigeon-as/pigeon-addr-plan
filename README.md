@@ -1,6 +1,8 @@
 # pigeon-addr-plan
 
-Hash-based address derivation — deterministic prefix allocation from names, no centralized IPAM.
+Hash-based address derivation. Deterministic prefix allocation from names, no centralized IPAM.
+
+Combines SHA-256 ([RFC 7217](https://datatracker.ietf.org/doc/html/rfc7217)), prefix-from-hash ([RFC 4193](https://datatracker.ietf.org/doc/html/rfc4193)), and name-as-input ([RFC 7343](https://datatracker.ietf.org/doc/html/rfc7343)) with hierarchical nesting and the WireGuard routing transpose from [Fly.io's 6PN](https://fly.io/blog/ipv6-wireguard-peering/).
 
 ## Primitives
 
