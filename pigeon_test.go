@@ -109,3 +109,68 @@ func TestTransposePigeonULA_HostRouting(t *testing.T) {
 		}
 	}
 }
+
+func TestCGNATRange(t *testing.T) {
+	r := CGNATRange()
+	if r.String() != "100.64.0.0/10" {
+		t.Fatalf("CGNATRange() = %s, want 100.64.0.0/10", r)
+	}
+	if !r.Contains(netip.MustParseAddr("100.64.0.1")) {
+		t.Fatal("100.64.0.1 should be in CGNAT range")
+	}
+	if r.Contains(netip.MustParseAddr("10.0.0.1")) {
+		t.Fatal("10.0.0.1 should not be in CGNAT range")
+	}
+}
+
+func TestPigeonHostIP(t *testing.T) {
+	ip, err := PigeonHostIP("worker-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !IsPigeonIP(ip) {
+		t.Fatalf("overlay addr %s not in pigeon ULA range", ip)
+	}
+
+	// Should be deterministic.
+	ip2, err := PigeonHostIP("worker-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ip != ip2 {
+		t.Fatalf("not deterministic: %s != %s", ip, ip2)
+	}
+
+	// App-view: network field (bytes 2-5) should be zero, host field (bytes 6-9) non-zero.
+	b := ip.As16()
+	allZero := true
+	for i := 2; i < 6; i++ {
+		if b[i] != 0 {
+			allZero = false
+		}
+	}
+	if !allZero {
+		t.Fatalf("app-view network field should be zero, got %x", b[2:6])
+	}
+}
+
+func TestPigeonHostRoute(t *testing.T) {
+	p, err := PigeonHostRoute("worker-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Bits() != 48 {
+		t.Fatalf("bits = %d, want 48", p.Bits())
+	}
+	if !PigeonULARange().Contains(p.Addr()) {
+		t.Fatalf("wire prefix %s not in pigeon ULA range", p)
+	}
+
+	// PigeonHostIP and PigeonHostRoute should agree: transposing the overlay
+	// IP should land in the wire prefix.
+	ip, _ := PigeonHostIP("worker-01")
+	wire, _ := TransposePigeonULA(ip)
+	if !p.Contains(wire) {
+		t.Fatalf("transposed overlay %s not in wire prefix %s", wire, p)
+	}
+}
